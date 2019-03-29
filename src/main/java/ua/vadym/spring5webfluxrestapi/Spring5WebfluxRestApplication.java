@@ -1,4 +1,4 @@
-package ua.vadym.spring5webfluxrest;
+package ua.vadym.spring5webfluxrestapi;
 
 import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;

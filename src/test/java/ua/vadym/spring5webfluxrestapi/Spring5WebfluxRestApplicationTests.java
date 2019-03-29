@@ -1,4 +1,4 @@
-package ua.vadym.spring5webfluxrest;
+package ua.vadym.spring5webfluxrestapi;
 
 import org.junit.Test;
 import org.junit.runner.RunWith;
