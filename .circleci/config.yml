@@ -38,7 +38,7 @@ jobs:
           key: v1-dependencies-{{ checksum "build.gradle" }}
 
       # run tests!
-      - run: gradle test
+      - run: gradle test jacocoTestReport
 
       - store_test_results:
           path: target/surefire-reports
