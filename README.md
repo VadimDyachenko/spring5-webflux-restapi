@@ -1,2 +1,1 @@
-# spring5-webflux-restapi
-Learning project
+# Spring Framework 5 - RESTFul Interfaces with WebFlux
