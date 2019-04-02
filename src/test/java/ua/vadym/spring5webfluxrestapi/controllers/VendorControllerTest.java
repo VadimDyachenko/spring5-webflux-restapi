@@ -2,12 +2,14 @@ package ua.vadym.spring5webfluxrestapi.controllers;
 
 import org.junit.Before;
 import org.junit.Test;
+import org.reactivestreams.Publisher;
 import org.springframework.test.web.reactive.server.WebTestClient;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 import ua.vadym.spring5webfluxrestapi.domain.Vendor;
 import ua.vadym.spring5webfluxrestapi.repositories.VendorRepository;
 
+import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.BDDMockito.given;
 import static org.mockito.Mockito.mock;
 
@@ -50,5 +52,19 @@ public class VendorControllerTest {
                 .exchange()
                 .expectBody(Vendor.class)
                 .isEqualTo(vendor);
+    }
+
+
+    @Test
+    public void createCategory() {
+        given(repository.saveAll(any(Publisher.class))).willReturn(Flux.just(Vendor.builder().build()));
+
+        Mono<Vendor> categoryMono = Mono.just(Vendor.builder().firstName("Vendor").build());
+
+        webTestClient.post()
+                .uri(BASE_URL)
+                .body(categoryMono, Vendor.class)
+                .exchange()
+                .expectStatus().isCreated();
     }
 }
