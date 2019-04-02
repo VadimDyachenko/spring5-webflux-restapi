@@ -16,6 +16,7 @@ import static org.mockito.Mockito.mock;
 public class CategoryControllerTest {
 
     private static final String BASE_URL = "/api/v1/categories/";
+    private static final String ID = "category id";
     private WebTestClient webTestClient;
     private CategoryRepository repository;
 
@@ -42,12 +43,11 @@ public class CategoryControllerTest {
 
     @Test
     public void getCategoryById() {
-        String id = "category id";
         Category nuts = Category.builder().description("Nuts").build();
-        given(repository.findById(id)).willReturn(Mono.just(nuts));
+        given(repository.findById(ID)).willReturn(Mono.just(nuts));
 
         webTestClient.get()
-                .uri(BASE_URL + id)
+                .uri(BASE_URL + ID)
                 .exchange()
                 .expectBody(Category.class)
                 .isEqualTo(nuts);
@@ -64,5 +64,21 @@ public class CategoryControllerTest {
                 .body(categoryMono, Category.class)
                 .exchange()
                 .expectStatus().isCreated();
+    }
+
+    @Test
+    public void updateCategory() {
+        Mono<Category> savedCategory = Mono.just(Category.builder().id(ID).description("Category").build());
+        given(repository.save(any(Category.class))).willReturn(savedCategory);
+
+        Mono<Category> categoryMono = Mono.just(Category.builder().description("Category").build());
+
+        webTestClient.put()
+                .uri(BASE_URL + ID)
+                .body(categoryMono, Category.class)
+                .exchange()
+                .expectStatus().isOk()
+                .expectStatus().isOk()
+                .expectBody(Category.class).isEqualTo(savedCategory.block());
     }
 }

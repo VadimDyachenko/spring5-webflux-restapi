@@ -16,6 +16,7 @@ import static org.mockito.Mockito.mock;
 public class VendorControllerTest {
 
     private static final String BASE_URL = "/api/v1/vendors/";
+    private static final String ID = "Vendor id";
     private WebTestClient webTestClient;
     private VendorRepository repository;
 
@@ -43,12 +44,11 @@ public class VendorControllerTest {
 
     @Test
     public void getVendorById() {
-        String id = "vendor id";
         Vendor vendor = Vendor.builder().firstName("Jim").lastName("Bim").build();
-        given(repository.findById(id)).willReturn(Mono.just(vendor));
+        given(repository.findById(ID)).willReturn(Mono.just(vendor));
 
         webTestClient.get()
-                .uri(BASE_URL + id)
+                .uri(BASE_URL + ID)
                 .exchange()
                 .expectBody(Vendor.class)
                 .isEqualTo(vendor);
@@ -56,15 +56,30 @@ public class VendorControllerTest {
 
 
     @Test
-    public void createCategory() {
+    public void createVendor() {
         given(repository.saveAll(any(Publisher.class))).willReturn(Flux.just(Vendor.builder().build()));
 
-        Mono<Vendor> categoryMono = Mono.just(Vendor.builder().firstName("Vendor").build());
+        Mono<Vendor> vendorMono = Mono.just(Vendor.builder().firstName("Vendor").build());
 
         webTestClient.post()
                 .uri(BASE_URL)
-                .body(categoryMono, Vendor.class)
+                .body(vendorMono, Vendor.class)
                 .exchange()
                 .expectStatus().isCreated();
+    }
+
+    @Test
+    public void updateVendor() {
+        Mono<Vendor> savedVendor = Mono.just(Vendor.builder().id(ID).firstName("Vendor").build());
+        given(repository.save(any(Vendor.class))).willReturn(savedVendor);
+
+        Mono<Vendor> vendorMono = Mono.just(Vendor.builder().firstName("Vendor").build());
+
+        webTestClient.put()
+                .uri(BASE_URL + ID)
+                .body(vendorMono, Vendor.class)
+                .exchange()
+                .expectStatus().isOk()
+                .expectBody(Vendor.class).isEqualTo(savedVendor.block());
     }
 }
