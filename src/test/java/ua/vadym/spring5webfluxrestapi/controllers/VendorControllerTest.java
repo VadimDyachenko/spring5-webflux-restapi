@@ -2,99 +2,142 @@ package ua.vadym.spring5webfluxrestapi.controllers;
 
 import org.junit.Before;
 import org.junit.Test;
-import org.reactivestreams.Publisher;
+import org.junit.runner.RunWith;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.boot.test.context.SpringBootTest;
+import org.springframework.test.context.junit4.SpringRunner;
 import org.springframework.test.web.reactive.server.WebTestClient;
-import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 import ua.vadym.spring5webfluxrestapi.domain.Vendor;
 import ua.vadym.spring5webfluxrestapi.repositories.VendorRepository;
 
-import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.BDDMockito.given;
-import static org.mockito.Mockito.mock;
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertNotNull;
 
+@RunWith(SpringRunner.class)
+@SpringBootTest(webEnvironment = SpringBootTest.WebEnvironment.RANDOM_PORT)
 public class VendorControllerTest {
 
     private static final String BASE_URL = "/api/v1/vendors/";
-    private static final String ID = "Vendor id";
+    private static final String ID_1 = "Vendor id 1";
+    private static final String ID_2 = "Vendor id 2";
+
+    private Vendor vendorA;
+    private Vendor vendorB;
+
+    @Autowired
     private WebTestClient webTestClient;
+    @Autowired
     private VendorRepository repository;
 
     @Before
     public void setUp() {
-        repository = mock(VendorRepository.class);
-        VendorController controller = new VendorController(repository);
-        webTestClient = WebTestClient.bindToController(controller).build();
-    }
+        repository.deleteAll().block();
 
+        vendorA = Vendor.builder().id(ID_1).firstName("Jim").lastName("Bim").build();
+        vendorB = Vendor.builder().id(ID_2).firstName("Jack").lastName("Daniels").build();
+
+        repository.save(vendorA).block();
+        repository.save(vendorB).block();
+    }
 
     @Test
     public void getAllVendors() {
-        Vendor vendorA = Vendor.builder().firstName("Jim").lastName("Bim").build();
-        Vendor vendorB = Vendor.builder().firstName("Jack").lastName("Daniels").build();
-
-        given(repository.findAll()).willReturn(Flux.just(vendorA, vendorB));
-
         webTestClient.get()
                 .uri(BASE_URL)
                 .exchange()
                 .expectBodyList(Vendor.class)
-                .hasSize(2);
+                .hasSize(2)
+                .contains(vendorA, vendorB);
     }
 
     @Test
     public void getVendorById() {
-        Vendor vendor = Vendor.builder().firstName("Jim").lastName("Bim").build();
-        given(repository.findById(ID)).willReturn(Mono.just(vendor));
-
         webTestClient.get()
-                .uri(BASE_URL + ID)
+                .uri(BASE_URL + ID_1)
                 .exchange()
+                .expectStatus().isOk()
                 .expectBody(Vendor.class)
-                .isEqualTo(vendor);
+                .isEqualTo(vendorA);
     }
 
+    @Test
+    public void getVendorByIdNotFound() {
+        webTestClient.get()
+                .uri(BASE_URL + "absent id")
+                .exchange()
+                .expectStatus().isNotFound();
+    }
 
     @Test
     public void createVendor() {
-        given(repository.saveAll(any(Publisher.class))).willReturn(Flux.just(Vendor.builder().build()));
-
-        Mono<Vendor> vendorMono = Mono.just(Vendor.builder().firstName("Vendor").build());
+        Mono<Vendor> vendorMono = Mono.just(Vendor.builder().firstName("Vendor").lastName("Last Name").build());
 
         webTestClient.post()
                 .uri(BASE_URL)
                 .body(vendorMono, Vendor.class)
                 .exchange()
-                .expectStatus().isCreated();
+                .expectStatus().isCreated()
+                .expectBody()
+                .jsonPath("$.id").isNotEmpty()
+                .jsonPath("$.firstName").isEqualTo("Vendor");
+
+        Long count = repository.count().block();
+        assertNotNull(count);
+        assertEquals(3L, count.longValue());
     }
 
     @Test
     public void updateVendor() {
-        Mono<Vendor> savedVendor = Mono.just(Vendor.builder().id(ID).firstName("Vendor").build());
-        given(repository.save(any(Vendor.class))).willReturn(savedVendor);
+        Mono<Vendor> vendorMono = Mono.just(Vendor.builder().firstName("New Vendor").lastName("New last name").build());
 
-        Mono<Vendor> vendorMono = Mono.just(Vendor.builder().firstName("Vendor").build());
+        Vendor expected = Vendor.builder().id(ID_1).firstName("New Vendor").lastName("New last name").build();
 
         webTestClient.put()
-                .uri(BASE_URL + ID)
+                .uri(BASE_URL + ID_1)
                 .body(vendorMono, Vendor.class)
                 .exchange()
                 .expectStatus().isOk()
-                .expectBody(Vendor.class).isEqualTo(savedVendor.block());
+                .expectBody(Vendor.class).isEqualTo(expected);
     }
 
     @Test
-    public void patchVendor() {
-        Mono<Vendor> savedVendor = Mono.just(Vendor.builder().id(ID).firstName("Vendor").build());
-        given(repository.save(any(Vendor.class))).willReturn(savedVendor);
+    public void patchVendorFirstNameField() {
+        Mono<Vendor> vendorMono = Mono.just(Vendor.builder().firstName("New First Name").build());
 
-        Mono<Vendor> vendorMono = Mono.just(Vendor.builder().firstName("Vendor").build());
+        Vendor expected = Vendor.builder().id(ID_1).firstName("New First Name").lastName("Bim").build();
 
         webTestClient.patch()
-                .uri(BASE_URL + ID)
+                .uri(BASE_URL + ID_1)
                 .body(vendorMono, Vendor.class)
                 .exchange()
                 .expectStatus().isOk()
-                .expectBody(Vendor.class).isEqualTo(savedVendor.block());
+                .expectBody(Vendor.class).isEqualTo(expected);
+    }
+
+    @Test
+    public void patchVendorLastNameField() {
+        Mono<Vendor> vendorMono = Mono.just(Vendor.builder().lastName("New Last Name").build());
+
+        Vendor expected = Vendor.builder().id(ID_1).firstName("Jim").lastName("New Last Name").build();
+
+        webTestClient.patch()
+                .uri(BASE_URL + ID_1)
+                .body(vendorMono, Vendor.class)
+                .exchange()
+                .expectStatus().isOk()
+                .expectBody(Vendor.class).isEqualTo(expected);
+    }
+
+    @Test
+    public void patchVendorNotFound() {
+        Mono<Vendor> vendorMono = Mono.just(Vendor.builder().firstName("Vendor").build());
+
+        webTestClient.patch()
+                .uri(BASE_URL + "absent id")
+                .body(vendorMono, Vendor.class)
+                .exchange()
+                .expectStatus().isNotFound();
     }
 }
+
