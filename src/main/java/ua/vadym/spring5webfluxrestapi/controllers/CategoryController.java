@@ -3,6 +3,7 @@ package ua.vadym.spring5webfluxrestapi.controllers;
 import org.reactivestreams.Publisher;
 import org.springframework.http.HttpStatus;
 import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PatchMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.PutMapping;
@@ -47,4 +48,20 @@ public class CategoryController {
         return categoryRepository.save(category);
     }
 
+    @PatchMapping("/{id}")
+    Mono<Category> patchCategory(@PathVariable String id, @RequestBody Category category) {
+        Category foundCategory = categoryRepository.findById(id).block();
+
+        String description = category.getDescription();
+        Mono<Category> result;
+
+        if(foundCategory.getDescription().equals(description)) {
+            result = Mono.just(foundCategory);
+        } else {
+            foundCategory.setDescription(description);
+            result = categoryRepository.save(foundCategory);
+        }
+
+        return result;
+    }
 }
