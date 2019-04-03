@@ -3,6 +3,7 @@ package ua.vadym.spring5webfluxrestapi.controllers;
 import org.reactivestreams.Publisher;
 import org.springframework.http.HttpStatus;
 import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PatchMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.PutMapping;
@@ -12,9 +13,10 @@ import org.springframework.web.bind.annotation.ResponseStatus;
 import org.springframework.web.bind.annotation.RestController;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
-import ua.vadym.spring5webfluxrestapi.domain.Category;
 import ua.vadym.spring5webfluxrestapi.domain.Vendor;
 import ua.vadym.spring5webfluxrestapi.repositories.VendorRepository;
+
+import java.util.Objects;
 
 @RestController
 @RequestMapping("/api/v1/vendors")
@@ -39,13 +41,35 @@ public class VendorController {
 
     @PostMapping
     @ResponseStatus(HttpStatus.CREATED)
-    Mono<Void> createCategory(@RequestBody Publisher<Vendor> categoryStream) {
-        return vendorRepository.saveAll(categoryStream).then();
+    Mono<Void> createVendor(@RequestBody Publisher<Vendor> vendorStream) {
+        return vendorRepository.saveAll(vendorStream).then();
     }
 
     @PutMapping("/{id}")
     Mono<Vendor> updateVendor(@PathVariable String id, @RequestBody Vendor vendor) {
         vendor.setId(id);
         return vendorRepository.save(vendor);
+    }
+
+    @PatchMapping("/{id}")
+    Mono<Vendor> patchVendor(@PathVariable String id, @RequestBody Vendor vendor) {
+        Vendor foundVendor = vendorRepository.findById(id).block();
+
+        if(Objects.equals(foundVendor, vendor)) {
+            return Mono.just(foundVendor);
+        }
+
+        String firstName = vendor.getFirstName();
+        String lastName = vendor.getLastName();
+
+        if(!foundVendor.getFirstName().equals(firstName)) {
+            foundVendor.setFirstName(firstName);
+        }
+
+        if(!foundVendor.getLastName().equals(lastName)) {
+            foundVendor.setLastName(lastName);
+        }
+
+        return vendorRepository.save(foundVendor);
     }
 }

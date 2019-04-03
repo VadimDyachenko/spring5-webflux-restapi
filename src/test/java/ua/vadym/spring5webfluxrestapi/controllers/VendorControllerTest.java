@@ -82,4 +82,19 @@ public class VendorControllerTest {
                 .expectStatus().isOk()
                 .expectBody(Vendor.class).isEqualTo(savedVendor.block());
     }
+
+    @Test
+    public void patchVendor() {
+        Mono<Vendor> savedVendor = Mono.just(Vendor.builder().id(ID).firstName("Vendor").build());
+        given(repository.save(any(Vendor.class))).willReturn(savedVendor);
+
+        Mono<Vendor> vendorMono = Mono.just(Vendor.builder().firstName("Vendor").build());
+
+        webTestClient.patch()
+                .uri(BASE_URL + ID)
+                .body(vendorMono, Vendor.class)
+                .exchange()
+                .expectStatus().isOk()
+                .expectBody(Vendor.class).isEqualTo(savedVendor.block());
+    }
 }
