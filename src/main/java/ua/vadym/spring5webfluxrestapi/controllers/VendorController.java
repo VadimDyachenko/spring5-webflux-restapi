@@ -13,68 +13,48 @@ import org.springframework.web.bind.annotation.RestController;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 import ua.vadym.spring5webfluxrestapi.domain.Vendor;
-import ua.vadym.spring5webfluxrestapi.repositories.VendorRepository;
-
-import java.util.function.Function;
+import ua.vadym.spring5webfluxrestapi.services.VendorService;
 
 @RestController
 @RequestMapping("/api/v1/vendors")
 public class VendorController {
 
-    private final VendorRepository vendorRepository;
+    private final VendorService vendorService;
 
-    public VendorController(VendorRepository vendorRepository) {
-        this.vendorRepository = vendorRepository;
+    public VendorController(VendorService vendorService) {
+        this.vendorService = vendorService;
     }
 
     @GetMapping
     Flux<Vendor> getAllVendors() {
-        return vendorRepository.findAll();
+        return vendorService.getAllVendors();
     }
 
     @GetMapping("/{id}")
     Mono<ResponseEntity<Vendor>> getVendorById(@PathVariable String id) {
-        return vendorRepository.findById(id)
+        return vendorService.findVendorById(id)
                 .map(ResponseEntity::ok)
                 .defaultIfEmpty(ResponseEntity.notFound().build());
     }
 
     @PostMapping
     Mono<ResponseEntity<Vendor>> createVendor(@RequestBody Vendor vendor) {
-        return vendorRepository.save(vendor)
+        return vendorService.createVendor(vendor)
                 .map(v -> new ResponseEntity<>(v, HttpStatus.CREATED))
                 .onErrorReturn(ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).build());
     }
 
     @PutMapping("/{id}")
     Mono<ResponseEntity<Vendor>> updateVendor(@PathVariable String id, @RequestBody Vendor vendor) {
-        vendor.setId(id);
-        return vendorRepository.save(vendor)
+        return vendorService.updateVendor(id, vendor)
                 .map(ResponseEntity::ok)
                 .onErrorReturn(ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).build());
     }
 
     @PatchMapping("/{id}")
     Mono<ResponseEntity<Vendor>> patchVendor(@PathVariable String id, @RequestBody Vendor vendor) {
-
-        return vendorRepository.findById(id)
-                .flatMap(patchVendorFunction(vendor))
+        return vendorService.patchVendor(id, vendor)
                 .map(ResponseEntity::ok)
                 .defaultIfEmpty(ResponseEntity.notFound().build());
-    }
-
-    private Function<Vendor, Mono<? extends Vendor>> patchVendorFunction(Vendor vendor) {
-        return existingVendor -> {
-            String firstName = vendor.getFirstName();
-            if (firstName != null) {
-                existingVendor.setFirstName(firstName);
-            }
-
-            String lastName = vendor.getLastName();
-            if (lastName != null) {
-                existingVendor.setLastName(lastName);
-            }
-            return vendorRepository.save(existingVendor);
-        };
     }
 }
